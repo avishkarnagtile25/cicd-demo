@@ -21,10 +21,3 @@ jobs:
 
       - name: Push Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:${{ github.sha }}
-      - name: Update Deployment
-        run: |
-          kubectl set image deployment/cicd-demo \
-          cicd-demo=${{ secrets.DOCKER_USERNAME }}/cicd-demo:${{ github.sha }}
-
-      - name: Verify Rollout
-        run: kubectl rollout status deployment/cicd-demo
