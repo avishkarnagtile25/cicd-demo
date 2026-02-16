@@ -10,24 +10,18 @@ jobs:
   build-push-deploy:
     runs-on: self-hosted
 
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/cicd-demo
-      IMAGE_TAG: ${{ github.sha }}
-
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Docker Login
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}" -p
 
-      - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
+      - name: Build Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest .
 
-      - name: Push Docker Image
-        run: docker push $IMAGE_NAME:$IMAGE_TAG
+      - name: Push Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest
 
-      - name: Update Kubernetes Deployment
-        run: |
-          kubectl set image deployment/cicd-demo cicd-demo=$IMAGE_NAME:$IMAGE_TAG
-          kubectl rollout status deployment/cicd-demo
+      - name: Restart Deployment
+        run: kubectl rollout restart deployment cicd-demo
