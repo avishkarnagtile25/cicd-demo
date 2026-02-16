@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI-CD Pipeline
 
 on:
   push:
@@ -6,23 +6,50 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
-    runs-on: self-hosted   # IMPORTANT for Minikube local deployment
+  build-push-deploy:
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Docker Login
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Build Docker Image
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest .
-
-      - name: Push Docker Image
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest
-
-      - name: Deploy to Minikube
+      # -----------------------------
+      # Docker Login
+      # -----------------------------
+      - name: Login to Docker Hub
         run: |
-          kubectl apply -f k8s/
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      # -----------------------------
+      # Build Docker Image
+      # -----------------------------
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/cicd-demo:${{ github.sha }} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/cicd-demo:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest
+
+      # -----------------------------
+      # Push Docker Image
+      # -----------------------------
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest
+
+      # -----------------------------
+      # Setup Kubernetes Access
+      # -----------------------------
+      - name: Setup Kubernetes Access
+        run: |
+          export KUBECONFIG=$HOME/.kube/config
+          kubectl config use-context minikube
+          kubectl get nodes
+
+      # -----------------------------
+      # Deploy to Minikube
+      # -----------------------------
+      - name: Restart Deployment
+        run: |
+          export KUBECONFIG=$HOME/.kube/config
           kubectl rollout restart deployment cicd-demo
+          kubectl rollout status deployment cicd-demo
