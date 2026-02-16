@@ -36,20 +36,16 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:${{ github.sha }}
           docker push ${{ secrets.DOCKER_USERNAME }}/cicd-demo:latest
 
-      # -----------------------------
-      # Setup Kubernetes Access
-      # -----------------------------
       - name: Setup Kubernetes Access
+        shell: powershell
         run: |
-          export KUBECONFIG=$HOME/.kube/config
+          $env:KUBECONFIG="$HOME\.kube\config"
           kubectl config use-context minikube
           kubectl get nodes
 
-      # -----------------------------
-      # Deploy to Minikube
-      # -----------------------------
-      - name: Restart Deployment
+      - name: Deploy to Minikube
+        shell: powershell
         run: |
-          export KUBECONFIG=$HOME/.kube/config
+          $env:KUBECONFIG="$HOME\.kube\config"
           kubectl rollout restart deployment cicd-demo
           kubectl rollout status deployment cicd-demo
